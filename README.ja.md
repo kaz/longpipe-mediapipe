@@ -8,22 +8,10 @@
 
 - Longpipe の全 5 サイズ（xs / small / medium / large / xl）を、それぞれ**横長（landscape）**と**縦長（portrait）**の 2 種類で用意
 - 入出力とメタデータは `selfie_segmenter` と同じなので、`modelAssetPath` を差し替えるだけで動きます
-- `index.html`：Longpipe と MediaPipe のモデルを好きな数だけ並べ、同じ Web カメラ映像で比較できるデモ
 
 ## デモ
 
-```bash
-python3 -m http.server 8000
-# http://localhost:8000/ を開く
-```
-
-**Webcam** か **Demo image** を選びます。**＋ add model** でパネルを追加でき、パネルごとにモデルとデリゲート（GPU / CPU）を切り替えられます。
-最初に並ぶモデルは、ページを開いたときの画面の向きで決まります（横長：`selfie_segmenter_landscape` と `longpipe_landscape_small`、
-縦長：`selfie_segmenter` と `longpipe_portrait_small`）。`?panels=lp_landscape_xl,mp_selfie&source=demo` のように URL で指定することもできます。
-
-カメラを使うには安全なコンテキストが必要です。同じ PC なら `localhost` で動きますが、スマートフォンからは HTTPS が必要です（GitHub Pages やトンネルなど）。
-`@mediapipe/tasks-vision`、MediaPipe 公式モデル、デモ用の人物写真と背景写真は、実行時にそれぞれ jsDelivr、Google のモデル配布サーバー、Unsplash から読み込みます
-（背景写真を読み込めない場合は単色の背景になります）。
+https://kaz.github.io/longpipe-mediapipe/
 
 ## モデル
 
@@ -133,7 +121,7 @@ SHA-256 を照合し、各サイズを 2 つの向きで変換（`tools/convert_
 
 ## ライセンス
 
-[LICENSE](LICENSE) を参照してください。
+[LICENSE](LICENSE) を参照してください。`models/` 内のモデルには [models/LICENSE](models/LICENSE) が適用されます。
 
 ## クレジット
 

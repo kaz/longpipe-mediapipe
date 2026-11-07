@@ -8,22 +8,10 @@ for MediaPipe's `selfie_segmenter` — no Longpipe runtime required.
 
 - All five Longpipe sizes (xs / small / medium / large / xl), each in a **landscape** and a **portrait** variant
 - Same input/output contract and metadata as `selfie_segmenter`: swap `modelAssetPath`, keep your code
-- `index.html`: a webcam demo that runs any number of Longpipe and MediaPipe models side by side on the same frame
 
 ## Demo
 
-```bash
-python3 -m http.server 8000
-# open http://localhost:8000/
-```
-
-Pick **Webcam** or **Demo image**, add panels with **＋ add model**, and switch model / delegate (GPU, CPU) per panel.
-The default panels depend on the screen shape when the page opens (landscape: `selfie_segmenter_landscape` + `longpipe_landscape_small`,
-portrait: `selfie_segmenter` + `longpipe_portrait_small`). `?panels=lp_landscape_xl,mp_selfie&source=demo` overrides them.
-
-Camera access needs a secure context: `localhost` works on the same machine; phones need HTTPS (e.g. GitHub Pages or a tunnel).
-`@mediapipe/tasks-vision`, the MediaPipe models and the demo / background photos are loaded from jsDelivr, Google's model
-storage and Unsplash at runtime (the background falls back to a solid colour if its photo cannot be loaded).
+https://kaz.github.io/longpipe-mediapipe/
 
 ## Models
 
@@ -136,7 +124,7 @@ files, are not included, so masks are computed per frame.
 
 ## License
 
-See [LICENSE](LICENSE).
+See [LICENSE](LICENSE). The models in `models/` are covered by [models/LICENSE](models/LICENSE).
 
 ## Credits
 

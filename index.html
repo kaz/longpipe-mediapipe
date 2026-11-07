@@ -40,7 +40,7 @@
   Longpipe models: converted from the <a href="https://github.com/sb2702/longpipe">Longpipe</a> weights (MIT, © 2026 Sam Bhattacharyya) to TFLite with selfie_segmenter-compatible metadata —
   landscape = native canvas, portrait = the same weights at the transposed canvas.
   MediaPipe models are loaded from Google's model storage (Apache-2.0). Inference runs in
-  <a href="https://www.npmjs.com/package/@mediapipe/tasks-vision">@mediapipe/tasks-vision</a> 1.1.1 ImageSegmenter (VIDEO mode); "ms" = segmentForVideo + mask readback.
+  <a href="https://www.npmjs.com/package/@mediapipe/tasks-vision">@mediapipe/tasks-vision</a> 1.2.2 ImageSegmenter (VIDEO mode); "ms" = segmentForVideo + mask readback.
   Demo photos by <a href="https://unsplash.com/@silverkblack?utm_source=longpipe_tasks_vision&amp;utm_medium=referral">Vitaly Gariev</a>
   (<a href="https://unsplash.com/photos/MLoyNixjAPo?utm_source=longpipe_tasks_vision&amp;utm_medium=referral">landscape</a>) and
   <a href="https://unsplash.com/@foffoxx?utm_source=longpipe_tasks_vision&amp;utm_medium=referral">Vincenzo De Simone</a>
@@ -50,8 +50,8 @@
 </p>
 
 <script type="module">
-import { FilesetResolver, ImageSegmenter } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/vision_bundle.mjs';
-const TASKS_VISION_WASM = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/wasm';
+import { FilesetResolver, ImageSegmenter } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/vision_bundle.mjs';
+const TASKS_VISION_WASM = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/wasm';
 const MP_MODELS = 'https://storage.googleapis.com/mediapipe-models/image_segmenter';
 
 const LP_TIERS = [['xs', 384, 240], ['small', 384, 224], ['medium', 512, 320], ['large', 640, 400], ['xl', 1280, 768]];

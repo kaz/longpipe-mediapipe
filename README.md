@@ -50,7 +50,7 @@ but costs some accuracy — see the numbers below.
 ```js
 import { FilesetResolver, ImageSegmenter } from '@mediapipe/tasks-vision';
 
-const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/wasm');
+const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/wasm');
 const segmenter = await ImageSegmenter.createFromOptions(vision, {
   baseOptions: { modelAssetPath: 'models/longpipe_landscape_small_float16.tflite', delegate: 'GPU' },
   runningMode: 'VIDEO',
@@ -88,13 +88,14 @@ IoU 0.9997 on the GPU delegate, the difference coming from reduced GPU precision
 
 ## Performance (rough)
 
-`@mediapipe/tasks-vision` 1.1.1, GPU delegate, Apple M2, Chromium 152, 640×360 frames, nine models running back to back,
-per call including mask readback. Single machine, after warm-up; expect large variation across devices and runs.
+`@mediapipe/tasks-vision` 1.2.2, GPU delegate, Apple M2, Chromium 152, 640×360 frames, each model timed on its own
+(median of 30 calls after warm-up, including mask readback, averaged over two runs). Single machine; expect large
+variation across devices and runs.
 
 | Model | ms |
 |---|---|
-| selfie_segmenter / selfie_segmenter_landscape | ~14 / ~16 |
-| longpipe xs / small / medium / large / xl | ~10 / ~11 / ~14 / ~15 / ~29 |
+| selfie_segmenter / selfie_segmenter_landscape | ~6 / ~6 |
+| longpipe xs / small / medium / large / xl | ~8 / ~7 / ~10 / ~10 / ~24 |
 
 ## Rebuilding the models
 

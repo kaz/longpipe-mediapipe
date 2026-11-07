@@ -50,7 +50,7 @@ const modelAssetPath = `models/longpipe_${portrait ? 'portrait' : 'landscape'}_s
 ```js
 import { FilesetResolver, ImageSegmenter } from '@mediapipe/tasks-vision';
 
-const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/wasm');
+const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/wasm');
 const segmenter = await ImageSegmenter.createFromOptions(vision, {
   baseOptions: { modelAssetPath: 'models/longpipe_landscape_small_float16.tflite', delegate: 'GPU' },
   runningMode: 'VIDEO',
@@ -86,13 +86,13 @@ CPU デリゲートでは参照実装と 1e-4 以内で一致（マスク IoU 1.
 
 ## 速度（目安）
 
-`@mediapipe/tasks-vision` 1.1.1、GPU デリゲート、Apple M2、Chromium 152、640×360 のフレームで 9 モデルを順番に実行したときの、
-マスクの読み出しを含む 1 回あたりの時間です。1 台・ウォームアップ後の値で、端末や実行ごとに大きく変わります。
+`@mediapipe/tasks-vision` 1.2.2、GPU デリゲート、Apple M2、Chromium 152、640×360 のフレームで、各モデルを単独で実行したときの
+1 回あたりの時間です（ウォームアップ後 30 回の中央値、マスクの読み出しを含む、2 回の計測の平均）。1 台での値で、端末や実行ごとに大きく変わります。
 
 | モデル | ms |
 |---|---|
-| selfie_segmenter / selfie_segmenter_landscape | 約 14 / 約 16 |
-| longpipe xs / small / medium / large / xl | 約 10 / 11 / 14 / 15 / 29 |
+| selfie_segmenter / selfie_segmenter_landscape | 約 6 / 約 6 |
+| longpipe xs / small / medium / large / xl | 約 8 / 7 / 10 / 10 / 24 |
 
 ## モデルの再生成
 

@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Longpipe model for @mediapipe/tasks-vision</title>
+<style>
+  :root { --bg:#f6f5f4; --panel:#fff; --fg:#1c1917; --muted:#78716c; --line:#e7e5e4; --accent:#2563eb; --bad:#b91c1c; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#141210; --panel:#1f1d1b; --fg:#f5f5f4; --muted:#a8a29e; --line:#3a3633; --accent:#60a5fa; --bad:#f87171; } }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--fg); font:14px/1.45 system-ui, sans-serif; }
+  header { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-bottom:12px; }
+  h1 { font-size:17px; margin:0 12px 0 0; }
+  button, select { font:inherit; font-size:13px; padding:5px 10px; border-radius:6px; border:1px solid var(--line); background:var(--panel); color:var(--fg); cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .muted { color:var(--muted); font-size:12px; }
+  #grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:12px; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden; display:flex; flex-direction:column; }
+  .panel .bar { display:flex; gap:6px; padding:8px; border-bottom:1px solid var(--line); }
+  .panel .bar select.model { flex:1; min-width:0; }
+  .panel .bar button.x { padding:5px 9px; }
+  .panel canvas { width:100%; max-height:70vh; display:block; background:#000; object-fit:contain; }
+  .panel .stats { padding:6px 10px; font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; min-height:28px; }
+  .panel .stats .err { color:var(--bad); }
+  #add { min-height:120px; border:1px dashed var(--line); border-radius:10px; background:transparent; color:var(--muted); font-size:14px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Longpipe model for @mediapipe/tasks-vision</h1>
+  <button class="primary" id="cam">Webcam</button>
+  <button id="demo">Demo image</button>
+  <label class="muted">background
+    <select id="bgmode"><option value="image">image</option><option value="color">solid</option><option value="checker">checker</option><option value="mask">mask only</option></select>
+  </label>
+  <span class="muted" id="status">pick a source to start · every panel runs on the same frame</span>
+</header>
+<div id="grid"><button id="add">＋ add model</button></div>
+<p class="muted">
+  Longpipe models: converted from the <a href="https://github.com/sb2702/longpipe">Longpipe</a> weights (MIT, © 2026 Sam Bhattacharyya) to TFLite with selfie_segmenter-compatible metadata —
+  landscape = native canvas, portrait = the same weights at the transposed canvas.
+  MediaPipe models are loaded from Google's model storage (Apache-2.0). Inference runs in
+  <a href="https://www.npmjs.com/package/@mediapipe/tasks-vision">@mediapipe/tasks-vision</a> 1.1.1 ImageSegmenter (VIDEO mode); "ms" = segmentForVideo + mask readback.
+  Demo photos by <a href="https://unsplash.com/@silverkblack?utm_source=longpipe_tasks_vision&amp;utm_medium=referral">Vitaly Gariev</a>
+  (<a href="https://unsplash.com/photos/MLoyNixjAPo?utm_source=longpipe_tasks_vision&amp;utm_medium=referral">landscape</a>) and
+  <a href="https://unsplash.com/@foffoxx?utm_source=longpipe_tasks_vision&amp;utm_medium=referral">Vincenzo De Simone</a>
+  (<a href="https://unsplash.com/photos/BjnXKceifJA?utm_source=longpipe_tasks_vision&amp;utm_medium=referral">portrait</a>) on Unsplash;
+  background photo by <a href="https://unsplash.com/@heftiba?utm_source=longpipe_tasks_vision&amp;utm_medium=referral">Toa Heftiba</a>
+  on <a href="https://unsplash.com/photos/cSpfzCB2jFk?utm_source=longpipe_tasks_vision&amp;utm_medium=referral">Unsplash</a>.
+</p>
+
+<script type="module">
+import { FilesetResolver, ImageSegmenter } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/vision_bundle.mjs';
+const TASKS_VISION_WASM = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/wasm';
+const MP_MODELS = 'https://storage.googleapis.com/mediapipe-models/image_segmenter';
+
+const LP_TIERS = [['xs', 384, 240], ['small', 384, 224], ['medium', 512, 320], ['large', 640, 400], ['xl', 1280, 768]];
+const MODELS = [
+  { id: 'mp_selfie',     group: 'MediaPipe', name: 'selfie_segmenter',           size: '256×256', url: `${MP_MODELS}/selfie_segmenter/float16/1/selfie_segmenter.tflite` },
+  { id: 'mp_landscape',  group: 'MediaPipe', name: 'selfie_segmenter_landscape', size: '256×144', url: `${MP_MODELS}/selfie_segmenter_landscape/float16/1/selfie_segmenter_landscape.tflite` },
+  { id: 'mp_multiclass', group: 'MediaPipe', name: 'selfie_multiclass',          size: '256×256', url: `${MP_MODELS}/selfie_multiclass_256x256/float32/1/selfie_multiclass_256x256.tflite` },
+  { id: 'mp_deeplab',    group: 'MediaPipe', name: 'deeplab_v3 (person)',        size: '257×257', url: `${MP_MODELS}/deeplab_v3/float32/1/deeplab_v3.tflite` },
+  ...LP_TIERS.map(([t, w, h]) => ({ id: `lp_landscape_${t}`, group: 'Longpipe landscape', name: `longpipe_landscape_${t}`, size: `${w}×${h}`,
+                                    url: `./models/longpipe_landscape_${t}_float16.tflite` })),
+  ...LP_TIERS.map(([t, w, h]) => ({ id: `lp_portrait_${t}`, group: 'Longpipe portrait', name: `longpipe_portrait_${t}`, size: `${h}×${w}`,
+                                    url: `./models/longpipe_portrait_${t}_float16.tflite` })),
+];
+const GROUPS = ['MediaPipe', 'Longpipe landscape', 'Longpipe portrait'];
+const byId = Object.fromEntries(MODELS.map((m) => [m.id, m]));
+const params = new URLSearchParams(location.search);
+const $ = (id) => document.getElementById(id);
+
+// Screen shape at page open decides the default models (and the demo frame shape).
+const portraitScreen = matchMedia('(orientation: portrait)').matches;
+const DEFAULT_PANELS = portraitScreen ? ['mp_selfie', 'lp_portrait_small'] : ['mp_landscape', 'lp_landscape_small'];
+
+// Photos from Unsplash (Unsplash License), hotlinked from Unsplash's CDN. crossOrigin is required
+// because both are read back from canvases (compositing / segmentation input).
+const BG_URL = 'https://images.unsplash.com/photo-1628152371243-c87e0f6fc1c7?w=1600&q=80&fm=jpg&fit=crop';   // Toa Heftiba
+const DEMO_URL_LANDSCAPE = 'https://images.unsplash.com/photo-1758598306835-2c030e203707?w=1280&q=80&fm=jpg';   // Vitaly Gariev
+const DEMO_URL_PORTRAIT = 'https://images.unsplash.com/photo-1770510067230-1059f0776b3a?w=900&q=80&fm=jpg';     // Vincenzo De Simone
+const loadImg = (src, cors) => new Promise((ok, err) => {
+  const i = new Image(); if (cors) i.crossOrigin = 'anonymous'; i.onload = () => ok(i); i.onerror = err; i.src = src;
+});
+const [vision, bgImg, demoLandscape, demoPortrait] = await Promise.all([
+  FilesetResolver.forVisionTasks(TASKS_VISION_WASM), loadImg(BG_URL, true).catch(() => null),
+  loadImg(DEMO_URL_LANDSCAPE, true).catch(() => null), loadImg(DEMO_URL_PORTRAIT, true).catch(() => null),
+]);
+const demoImgFor = (portrait) => (portrait ? demoPortrait || demoLandscape : demoLandscape || demoPortrait);
+if (!bgImg) {   // offline / blocked: fall back to a solid background
+  $('bgmode').querySelector('option[value="image"]').disabled = true; $('bgmode').value = 'color';
+}
+if (!demoImgFor(false)) { $('demo').disabled = true; $('demo').title = 'demo photo could not be loaded'; }
+
+// ---------- shared frame (≤ 640 px on the long side) ----------
+const frame = document.createElement('canvas');
+const fctx = frame.getContext('2d', { willReadFrequently: true });
+let W = 640, H = 360, srcPixels = null, bg = null;
+function setFrameSize(w, h) {
+  const s = Math.min(1, 640 / Math.max(w, h)); W = Math.round(w * s); H = Math.round(h * s);
+  frame.width = W; frame.height = H; makeBackground();
+  for (const p of panels) p.resize();
+}
+function makeBackground() {
+  const mode = $('bgmode').value;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  if (mode === 'image' && bgImg) {   // cover-fit the background photo to the frame
+    const s = Math.max(W / bgImg.width, H / bgImg.height), dw = bgImg.width * s, dh = bgImg.height * s;
+    x.drawImage(bgImg, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  } else if (mode === 'checker') {
+    for (let yy = 0; yy < H; yy += 16) for (let xx = 0; xx < W; xx += 16) { x.fillStyle = ((xx + yy) >> 4) & 1 ? '#c8c8c8' : '#8c8c8c'; x.fillRect(xx, yy, 16, 16); }
+  } else { x.fillStyle = '#189688'; x.fillRect(0, 0, W, H); }
+  bg = x.getImageData(0, 0, W, H).data;
+}
+$('bgmode').onchange = makeBackground;
+
+// ---------- person probability from any ImageSegmenter result ----------
+function personPicker(labels) {
+  const l = labels.map((s) => s.toLowerCase());
+  if (l.includes('person')) return { idx: l.indexOf('person'), invert: false };                          // deeplab_v3
+  if (l.length > 1 && l.includes('background')) return { idx: l.indexOf('background'), invert: true };   // multiclass
+  return { idx: 0, invert: false };                                                                       // selfie-style (incl. Longpipe)
+}
+
+// ---------- panels ----------
+const panels = [];
+class Panel {
+  constructor(modelId, delegate = 'GPU') {
+    this.el = document.createElement('div'); this.el.className = 'panel';
+    this.el.innerHTML = `<div class="bar"><select class="model"></select><select class="dlg"><option>GPU</option><option>CPU</option></select><button class="x" title="remove">×</button></div><canvas></canvas><div class="stats">loading…</div>`;
+    const sel = this.el.querySelector('.model');
+    for (const g of GROUPS) {
+      const og = document.createElement('optgroup'); og.label = g;
+      for (const m of MODELS.filter((m) => m.group === g)) og.append(new Option(`${m.name} · ${m.size}`, m.id));
+      sel.append(og);
+    }
+    sel.value = modelId; this.el.querySelector('.dlg').value = delegate;
+    this.canvas = this.el.querySelector('canvas'); this.ctx = this.canvas.getContext('2d');
+    this.statsEl = this.el.querySelector('.stats');
+    sel.onchange = () => this.load();
+    this.el.querySelector('.dlg').onchange = () => this.load();
+    this.el.querySelector('.x').onclick = () => this.remove();
+    $('grid').insertBefore(this.el, $('add'));
+    panels.push(this); this.resize(); this.load();
+  }
+  get modelId() { return this.el.querySelector('.model').value; }
+  get delegate() { return this.el.querySelector('.dlg').value; }
+  resize() {
+    this.canvas.width = W; this.canvas.height = H; this.canvas.style.aspectRatio = `${W} / ${H}`;
+    this.img = this.ctx.createImageData(W, H);
+  }
+  async load() {
+    const gen = (this.gen = (this.gen || 0) + 1);
+    this.seg?.close(); this.seg = null; this.ms = null; this.err = null;
+    this.statsEl.textContent = 'loading…';
+    try {
+      const seg = await ImageSegmenter.createFromOptions(vision, {
+        baseOptions: { modelAssetPath: byId[this.modelId].url, delegate: this.delegate },
+        runningMode: 'VIDEO', outputConfidenceMasks: true, outputCategoryMask: false,
+      });
+      if (gen !== this.gen) { seg.close(); return; }
+      this.pick = personPicker(seg.getLabels()); this.seg = seg; this.lastTs = 0;
+    } catch (e) { this.err = String(e.message || e); this.statsEl.innerHTML = `<span class="err">${this.err.slice(0, 160)}</span>`; }
+  }
+  run() {
+    if (!this.seg || !srcPixels) return;
+    const ts = Math.max(performance.now(), this.lastTs + 1); this.lastTs = ts;
+    const t0 = performance.now();
+    this.seg.segmentForVideo(frame, ts, (r) => {
+      const a = r.confidenceMasks[this.pick.idx].getAsFloat32Array();
+      const out = this.img.data, inv = this.pick.invert, maskOnly = $('bgmode').value === 'mask';
+      for (let i = 0, j = 0; i < a.length; i++, j += 4) {
+        const p = inv ? 1 - a[i] : a[i];
+        if (maskOnly) { out[j] = out[j + 1] = out[j + 2] = p * 255; }
+        else {
+          out[j] = srcPixels[j] * p + bg[j] * (1 - p);
+          out[j + 1] = srcPixels[j + 1] * p + bg[j + 1] * (1 - p);
+          out[j + 2] = srcPixels[j + 2] * p + bg[j + 2] * (1 - p);
+        }
+        out[j + 3] = 255;
+      }
+    });
+    const dt = performance.now() - t0;
+    this.ms = this.ms == null ? dt : this.ms * 0.9 + dt * 0.1;
+    this.ctx.putImageData(this.img, 0, 0);
+  }
+  stats() {
+    if (this.err || !this.seg) return;
+    const m = byId[this.modelId];
+    this.statsEl.textContent = `${m.name} · input ${m.size} · ${this.delegate} · ${this.ms?.toFixed(1) ?? '–'} ms`;
+  }
+  remove() { this.gen++; this.seg?.close(); this.el.remove(); panels.splice(panels.indexOf(this), 1); }
+}
+$('add').onclick = () => new Panel(panels.length ? panels[panels.length - 1].modelId : DEFAULT_PANELS[1]);
+
+// ---------- sources ----------
+let source = null, stream = null, raf = 0, fps = 0;
+function drawDemo(t) {   // slow pan / zoom over a still photo (landscape or portrait shot to match the frame)
+  const img = demoImgFor(H > W);
+  const z = 1.08 + 0.07 * Math.sin(t / 2300), cx = 0.5 + 0.04 * Math.sin(t / 1700), cy = 0.42 + 0.03 * Math.cos(t / 2100);
+  const s = Math.max(W / img.width, H / img.height) * z, dw = img.width * s, dh = img.height * s;
+  const x = Math.min(0, Math.max(W - dw, W / 2 - cx * dw)), y = Math.min(0, Math.max(H - dh, H / 2 - cy * dh));   // keep covered
+  fctx.drawImage(img, x, y, dw, dh);
+}
+async function start(kind) {
+  cancelAnimationFrame(raf); stream?.getTracks().forEach((t) => t.stop()); stream = null;
+  if (kind === 'webcam') {
+    try { stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } }); }
+    catch (e) { $('status').textContent = 'camera unavailable: ' + e.message; return; }
+    const v = document.createElement('video'); v.playsInline = true; v.muted = true; v.srcObject = stream; await v.play();
+    source = { kind, el: v, vw: v.videoWidth, vh: v.videoHeight }; setFrameSize(v.videoWidth, v.videoHeight);
+  } else {
+    source = { kind: 'demo' }; portraitScreen ? setFrameSize(360, 640) : setFrameSize(640, 360);
+  }
+  let frames = 0, t0 = performance.now();
+  const loop = (t) => {
+    if (source.kind === 'webcam') {
+      const v = source.el;   // device rotated → track size flips; follow it
+      if (v.videoWidth !== source.vw || v.videoHeight !== source.vh) { source.vw = v.videoWidth; source.vh = v.videoHeight; setFrameSize(source.vw, source.vh); }
+      fctx.drawImage(v, 0, 0, W, H);
+    } else drawDemo(t);
+    srcPixels = fctx.getImageData(0, 0, W, H).data;
+    for (const p of panels) p.run();
+    if (++frames % 15 === 0) { fps = 15000 / (performance.now() - t0); t0 = performance.now(); }
+    raf = requestAnimationFrame(loop);
+  };
+  raf = requestAnimationFrame(loop);
+}
+$('cam').onclick = () => start('webcam');
+$('demo').onclick = () => start('demo');
+setInterval(() => {   // stats on a timer so labels stay current even at low fps
+  if (!source) return;
+  $('status').textContent = `${source.kind} ${W}×${H} · ${panels.length} models · ${fps.toFixed(1)} fps (all panels, sequential)`;
+  for (const p of panels) p.stats();
+  window.__stats = { fps, frame: [W, H], panels: panels.map((p) => ({ model: p.modelId, delegate: p.delegate, ms: p.ms, err: p.err })) };
+}, 500);
+
+// ---------- initial panels (?panels=id,id overrides the screen-shape default) ----------
+for (const id of (params.get('panels')?.split(',') ?? DEFAULT_PANELS)) if (byId[id]) new Panel(id, params.get('delegate') || 'GPU');
+if (params.get('source')) start(params.get('source'));
+</script>
+</body>
+</html>
